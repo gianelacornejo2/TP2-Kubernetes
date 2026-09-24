@@ -1,4 +1,4 @@
-replicaCount: 2
+replicaCount: 4
 image:
   repository: elliottking/doom-wasm
   tag: "0.1.1"
