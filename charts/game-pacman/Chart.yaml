@@ -1,6 +1,6 @@
 apiVersion: v2
 name: game-pacman
-description: Helm chart para Pac-Man
+description: Helm chart para Pacman
 type: application
 version: 0.1.0
 appVersion: "1.0"

@@ -1,6 +1,6 @@
 apiVersion: v2
 name: game-doom
-description: Helm chart para el juego Doom
+description: Helm chart para Doom
 type: application
 version: 0.1.0
 appVersion: "1.0"
