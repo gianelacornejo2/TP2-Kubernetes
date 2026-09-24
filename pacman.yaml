@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pacman-html
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Pac-Man Kubernetes</title>
+      <style>
+        body { background: #111; color: #fff; font-family: monospace; text-align: center; padding-top: 30px; }
+        h1 { color: #ffeb3b; }
+        canvas { background: #000; border: 4px solid #1976d2; border-radius: 8px; margin: 20px auto; display: block; }
+        p { font-size: 16px; color: #bbb; }
+      </style>
+    </head>
+    <body>
+      <h1>PAC-MAN - KUBERNETES DEPLOYMENT</h1>
+      <p>Usa las FLECHAS del teclado para mover a Pac-Man y comer los puntos</p>
+      <canvas id="canvas" width="400" height="300"></canvas>
+      <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let px = 50, py = 150, dir = 0, score = 0;
+        const dots = [];
+        for (let x = 30; x < 380; x += 30) {
+          for (let y = 30; y < 280; y += 30) {
+            dots.push({ x, y, eaten: false });
+          }
+        }
+        window.addEventListener('keydown', e => {
+          if (e.key === 'ArrowRight') dir = 0;
+          if (e.key === 'ArrowDown') dir = 1;
+          if (e.key === 'ArrowLeft') dir = 2;
+          if (e.key === 'ArrowUp') dir = 3;
+        });
+        function update() {
+          if (dir === 0 && px < 380) px += 2;
+          if (dir === 1 && py < 280) py += 2;
+          if (dir === 2 && px > 20) px -= 2;
+          if (dir === 3 && py > 20) py -= 2;
+          dots.forEach(d => {
+            if (!d.eaten && Math.hypot(d.x - px, d.y - py) < 15) {
+              d.eaten = true;
+              score += 10;
+            }
+          });
+        }
+        function draw() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = '#ffb300';
+          dots.forEach(d => {
+            if (!d.eaten) {
+              ctx.beginPath();
+              ctx.arc(d.x, d.y, 4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          });
+          ctx.fillStyle = '#ffeb3b';
+          ctx.beginPath();
+          let sa = 0.2 * Math.PI, ea = 1.8 * Math.PI;
+          if (dir === 1) { sa = 0.7 * Math.PI; ea = 2.3 * Math.PI; }
+          if (dir === 2) { sa = 1.2 * Math.PI; ea = 2.8 * Math.PI; }
+          if (dir === 3) { sa = 1.7 * Math.PI; ea = 3.3 * Math.PI; }
+          ctx.arc(px, py, 15, sa, ea);
+          ctx.lineTo(px, py);
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.font = '16px monospace';
+          ctx.fillText('Score: ' + score, 20, 25);
+        }
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        loop();
+      </script>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pacman-deployment
+  labels:
+    app: pacman
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pacman
+  template:
+    metadata:
+      labels:
+        app: pacman
+    spec:
+      containers:
+      - name: pacman
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: html-volume
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: html-volume
+        configMap:
+          name: pacman-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pacman-service
+  labels:
+    app: pacman
+spec:
+  type: NodePort
+  selector:
+    app: pacman
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30002
